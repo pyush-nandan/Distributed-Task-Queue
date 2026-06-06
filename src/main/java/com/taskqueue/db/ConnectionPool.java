@@ -11,7 +11,7 @@ import java.sql.SQLException;
 public class ConnectionPool {
     private static volatile HikariDataSource ds;
 
-    static {
+    private static void initialisePool(){
         HikariConfig config = new HikariConfig();
         config.setJdbcUrl(requireEnv("DB_URL"));
         config.setUsername(requireEnv("DB_USER"));
@@ -24,6 +24,13 @@ public class ConnectionPool {
     }
 
     public static Connection getConnection() throws SQLException {
+        if (ds == null){
+            synchronized (ConnectionPool.class){
+                if (ds == null){
+                    initialisePool();
+                }
+            }
+        }
         return ds.getConnection();
     }
 
