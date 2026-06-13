@@ -7,23 +7,26 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
 public class SweeperThread implements Runnable{
-    private static final String SWEEPER_ZOMBIE_SQL = """
-            UPDATE tasks
-            SET status = 'PENDING',locked_at = NULL, updated_at = NOW(), retry_count = retry_count + 1
-            WHERE status = 'RUNNING' AND locked_at < NOW() - INTERVAL '10 minutes' AND retry_count < 3
-            """;
+    private final String sweeperZombieSQL;
+    private final String sweeperFailSQL;
 
-    private static final String SWEEPER_FAIL_SQL = """
-            UPDATE tasks
+    public SweeperThread(String queueName){
+        this.sweeperZombieSQL = String.format("""
+            UPDATE %s
+            SET status = 'PENDING',locked_at = NULL, updated_at = NOW(), retry_count = retry_count + 1
+            WHERE status = 'RUNNING' AND locked_at < NOW() - INTERVAL '10 minutes' AND retry_count < 3""", queueName);
+
+        this.sweeperFailSQL = String.format("""
+            UPDATE %s
             SET status = 'FAILED', locked_at = NULL, updated_at = NOW()
-            WHERE status = 'RUNNING' AND locked_at < NOW() - INTERVAL '10 minutes' AND retry_count >= 3
-            """;
+            WHERE status = 'RUNNING' AND locked_at < NOW() - INTERVAL '10 minutes' AND retry_count >= 3""", queueName);
+    }
 
     @Override
     public void run(){
         try (Connection conn = ConnectionPool.getConnection();
-             PreparedStatement pendingPs = conn.prepareStatement(SWEEPER_ZOMBIE_SQL);
-             PreparedStatement failPs = conn.prepareStatement(SWEEPER_FAIL_SQL)){
+             PreparedStatement pendingPs = conn.prepareStatement(sweeperZombieSQL);
+             PreparedStatement failPs = conn.prepareStatement(sweeperFailSQL)){
             conn.setAutoCommit(false);
             try{
                 int failed = failPs.executeUpdate();

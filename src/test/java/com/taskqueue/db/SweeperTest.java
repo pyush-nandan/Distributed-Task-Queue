@@ -36,7 +36,7 @@ public class SweeperTest extends BaseIntegrationTest{
             taskID = rs.getLong("id");
         }
 
-        SweeperThread sweeper = new SweeperThread();
+        SweeperThread sweeper = new SweeperThread("tasks");
         sweeper.run();
 
         try(Connection conn = ConnectionPool.getConnection();

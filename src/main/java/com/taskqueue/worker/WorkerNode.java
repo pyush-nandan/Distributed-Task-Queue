@@ -13,41 +13,54 @@ import java.util.concurrent.TimeUnit;
 
 public class WorkerNode {
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-    private final ThreadPoolExecutor taskPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(5);
+    private final ThreadPoolExecutor taskPool;
+    private final String workerID;
+    private final long pollInterval;
+    private final String queueName;
+    private final String pollSQL;
+    private final String claimSQL;
 
-    private static final String POLL_SQL = """
-            SELECT id, payload, retry_count FROM tasks
+    public WorkerNode(String workerID, int poolSize, long pollInterval, String queueName) {
+        this.workerID = workerID;
+        this.taskPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(poolSize);
+        this.pollInterval = pollInterval;
+        this.queueName = queueName;
+        this.pollSQL = String.format("""
+            SELECT id, payload, retry_count FROM %s
             WHERE status = 'PENDING'
             ORDER BY created_at ASC, id ASC
             FOR UPDATE SKIP LOCKED
             LIMIT 1
-            """;
+            """, queueName);
 
-    private static final String CLAIM_SQL = """
-            UPDATE tasks SET status = 'RUNNING', locked_at = NOW()
-            WHERE id = ?""";
+        this.claimSQL = String.format("""
+            UPDATE %s
+            SET status = 'RUNNING', locked_at = NOW()
+            WHERE id = ?
+            """, queueName);
+    }
 
     public void start(){
-        scheduler.scheduleAtFixedRate(this::poll, 0, 2, TimeUnit.SECONDS);
-        scheduler.scheduleAtFixedRate(new SweeperThread(), 10, 10, TimeUnit.MINUTES);
+        scheduler.scheduleAtFixedRate(this::poll, 0, pollInterval, TimeUnit.MILLISECONDS);
+        scheduler.scheduleAtFixedRate(new SweeperThread(queueName), 10, 10, TimeUnit.MINUTES);
     }
 
     public void poll(){
         try(Connection conn = ConnectionPool.getConnection()){
             conn.setAutoCommit(false);
-                try (PreparedStatement ps = conn.prepareStatement(POLL_SQL);
+                try (PreparedStatement ps = conn.prepareStatement(pollSQL);
                      ResultSet rs = ps.executeQuery()){
                     if(!rs.next()) {
                         conn.commit();
                         return;
                     }
                     Task task = new Task(rs.getLong("id"), rs.getString("payload"), rs.getInt("retry_count"));
-                    try (PreparedStatement claim = conn.prepareStatement(CLAIM_SQL)){
+                    try (PreparedStatement claim = conn.prepareStatement(claimSQL)){
                         claim.setLong(1, task.getId());
                         claim.executeUpdate();
                     }
                     conn.commit();
-                    taskPool.submit(new TaskExecutor(task));
+                    taskPool.submit(new TaskExecutor(task, queueName));
                 } catch (Exception e) {
                     conn.rollback();
                     throw e;

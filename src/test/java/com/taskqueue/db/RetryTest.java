@@ -40,7 +40,7 @@ public class RetryTest extends BaseIntegrationTest{
              taskID = rs.getLong("id");
          }
          Task task = new Task(taskID, "{\"test\":true}", 2);
-         TaskExecutor executor = new TaskExecutor(task);
+         TaskExecutor executor = new TaskExecutor(task, "tasks");
          executor.handleFailure(taskID, 2, new Exception("Simulated failure"));
 
          try(Connection conn = ConnectionPool.getConnection();
@@ -68,7 +68,7 @@ public class RetryTest extends BaseIntegrationTest{
         }
 
         Task task = new Task(taskID, "{\"test\":true}", 3);
-        TaskExecutor executor = new TaskExecutor(task);
+        TaskExecutor executor = new TaskExecutor(task, "tasks");
         executor.handleFailure(taskID, 3, new Exception("Simulated failure"));
 
         try(Connection conn = ConnectionPool.getConnection();
