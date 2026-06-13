@@ -49,7 +49,7 @@ public class ConnectionPool {
         return value;
     }
 
-    static void overrideDataSource(HikariDataSource testDs){
+    public static void overrideDataSource(HikariDataSource testDs){
         ds = testDs;
     }
 }

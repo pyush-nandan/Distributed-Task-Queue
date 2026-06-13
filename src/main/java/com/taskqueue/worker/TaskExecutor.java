@@ -9,17 +9,19 @@ import java.sql.SQLException;
 
 public class TaskExecutor implements Runnable{
     private final Task task;
+    private final String queueName;
 
-    public TaskExecutor(Task task) {
+    public TaskExecutor(Task task, String queueName) {
         this.task = task;
+        this.queueName = queueName;
     }
 
     @Override
     public void run(){
         try{
             //Simulate task processing
-            System.out.printf("Processing Task ID: %d, Payload: %s, Retry count: %d%n", task.getId(), task.getPayload(), task.getRetryCount());
-            Thread.sleep(5000); //Simulate time taken to complete the task
+//            System.out.printf("Processing Task ID: %d, Payload: %s, Retry count: %d%n", task.getId(), task.getPayload(), task.getRetryCount());
+            Thread.sleep(50); //Simulate time taken to complete the task
             markCompleted(task.getId());
         }
         catch (Exception e){
@@ -29,7 +31,7 @@ public class TaskExecutor implements Runnable{
 
     public void markCompleted(long taskID){
         //Update task status to completed in DB
-        String updateSQL = "UPDATE tasks SET status = 'COMPLETED', updated_at = NOW() WHERE id = ?";
+        String updateSQL = String.format("UPDATE %s SET status = 'COMPLETED', updated_at = NOW() WHERE id = ?", queueName);
         try(Connection conn = ConnectionPool.getConnection();
             PreparedStatement ps = conn.prepareStatement(updateSQL)){
             ps.setLong(1, taskID);
@@ -44,9 +46,9 @@ public class TaskExecutor implements Runnable{
         try (Connection conn = ConnectionPool.getConnection()){
             String updateSQL;
             if (retryCount < 3){
-                updateSQL = "UPDATE tasks SET status = 'PENDING', retry_count = retry_count + 1, locked_at = NULL WHERE id = ?";
+                updateSQL = String.format("UPDATE %s SET status = 'PENDING', retry_count = retry_count + 1, locked_at = NULL WHERE id = ?", queueName);
             } else {
-                updateSQL = "UPDATE tasks SET status = 'FAILED', updated_at = NOW() WHERE id = ?";
+                updateSQL = String.format("UPDATE %s SET status = 'FAILED', updated_at = NOW() WHERE id = ?", queueName);
             }
             try (PreparedStatement ps = conn.prepareStatement(updateSQL)){
                 ps.setLong(1, taskID);

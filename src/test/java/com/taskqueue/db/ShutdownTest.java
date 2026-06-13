@@ -22,7 +22,8 @@ public class ShutdownTest extends BaseIntegrationTest{
             }
         }
 
-        WorkerNode worker = new WorkerNode();
+        String workerID = System.getenv().getOrDefault("WORKER_ID", "worker");
+        WorkerNode worker = new WorkerNode(workerID, 5, 2000, "tasks");
         worker.start();
         Thread.sleep(1000); //let tasks get claimed
         worker.shutdown();

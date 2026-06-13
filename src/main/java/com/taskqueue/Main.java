@@ -12,7 +12,8 @@ public class Main {
         System.out.println("Starting Distributed Task Queue System...");
 
         TaskProducer producer = new TaskProducer();
-        WorkerNode worker = new WorkerNode();
+        String workerID = System.getenv().getOrDefault("WORKER_ID", "worker-1");
+        WorkerNode worker = new WorkerNode(workerID, 5, 2000, "tasks");
         ObservabilityServer observability = new ObservabilityServer(8080);
         try{
             observability.start();
@@ -23,7 +24,7 @@ public class Main {
         System.out.println("Enqueueing tasks...");
         try {
             for (int i = 1; i <= 5; i++) {
-                String payload = String.format("{\"task_id\": %d, \"data\": \"Sample data for task %d\"}", i, i);
+                String payload = String.format("{\"task_id\": %d, \"data\": \"Sample data for task %d\", \"type\": \"sample\"}", i, i);
                 long id = producer.enqueue(payload);
                 System.out.println("Enqueued Task ID: " + id);
             }
