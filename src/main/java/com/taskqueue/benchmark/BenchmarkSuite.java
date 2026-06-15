@@ -81,6 +81,8 @@ public class BenchmarkSuite {
                            tasksInserted.addAndGet(500);
                        }
                    }
+                   ps.executeBatch();
+                   tasksInserted.addAndGet(TOTAL_TASKS / 4 % 500);
                } catch (Exception e){
                    System.err.println("Producer failed: " + e.getMessage());
                }
