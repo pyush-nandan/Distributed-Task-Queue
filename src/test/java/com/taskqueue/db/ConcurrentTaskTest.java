@@ -28,7 +28,7 @@ public class ConcurrentTaskTest extends BaseIntegrationTest {
             }
         }
         catch (SQLException e){
-            System.err.println("Error inserting tasks: " + e.getMessage());
+            throw new RuntimeException("Error inserting tasks: " + e.getMessage(), e);
         }
     }
 
@@ -40,7 +40,7 @@ public class ConcurrentTaskTest extends BaseIntegrationTest {
             ps.executeUpdate();
         }
         catch (SQLException e){
-            System.err.println("Error deleting tasks: " + e.getMessage());
+            throw new RuntimeException("Error deleting tasks: " + e.getMessage(), e);
         }
     }
 
@@ -55,7 +55,7 @@ public class ConcurrentTaskTest extends BaseIntegrationTest {
                 barrier.await();
                 worker.poll();
             } catch (Exception e){
-                System.err.println("Error in concurrent polling: " + e.getMessage());
+                throw new RuntimeException("Error in worker thread: " + e.getMessage(), e);
             }
         };
 
@@ -78,7 +78,7 @@ public class ConcurrentTaskTest extends BaseIntegrationTest {
                 assertEquals(0, pendingCount, "All tasks should be picked up");
             }
         } catch (SQLException e) {
-            System.err.println("Error occurred while running the test: " + e.getMessage());
+            throw new RuntimeException("Error verifying task status: " + e.getMessage(), e);
         }
     }
 }
