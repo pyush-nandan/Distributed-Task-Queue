@@ -67,7 +67,7 @@ public class ConcurrentTaskTest extends BaseIntegrationTest {
         try{
             w1.join(); w2.join(); w3.join();
         } catch (InterruptedException e){
-            System.err.println("Error waiting for threads to finish: " + e.getMessage());
+            throw new RuntimeException("Worker threads interrupted: " + e.getMessage(), e);
         }
 
         try(Connection conn = ConnectionPool.getConnection();
