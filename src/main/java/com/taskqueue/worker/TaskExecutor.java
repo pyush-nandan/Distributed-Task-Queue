@@ -20,7 +20,7 @@ public class TaskExecutor implements Runnable{
     public void run(){
         try{
             //Simulate task processing
-//            System.out.printf("Processing Task ID: %d, Payload: %s, Retry count: %d%n", task.getId(), task.getPayload(), task.getRetryCount());
+            System.out.printf("Processing Task ID: %d, Payload: %s, Retry count: %d%n", task.getId(), task.getPayload(), task.getRetryCount());
             Thread.sleep(50); //Simulate time taken to complete the task
             markCompleted(task.getId());
         }
@@ -37,12 +37,13 @@ public class TaskExecutor implements Runnable{
             ps.setLong(1, taskID);
             ps.executeUpdate();
         } catch (SQLException e) {
-            System.err.println("Failed to mark task as completed: " + e.getMessage());
+            System.err.printf("Failed to mark task %d as completed: %s%n", taskID, e.getMessage());
+            handleFailure(taskID, task.getRetryCount(), e);
         }
     }
 
     public void handleFailure(long taskID, int retryCount, Exception e){
-        System.err.printf("Task %d failed (retry %d): %s%n", taskID, retryCount, e.getMessage());
+        System.err.printf("Task %d couldn't be marked completed (retry %d): %s%n", taskID, retryCount, e.getMessage());
         try (Connection conn = ConnectionPool.getConnection()){
             String updateSQL;
             if (retryCount < 3){
