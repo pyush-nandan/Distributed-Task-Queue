@@ -45,7 +45,7 @@ public class ConcurrentTaskTest extends BaseIntegrationTest {
     }
 
     @Test
-    void testConcurrentPolling(){
+    void testConcurrentPolling() throws InterruptedException{
         String workerID = System.getenv().getOrDefault("WORKER_ID", "worker");
         WorkerNode worker = new WorkerNode(workerID, 5, 2000, "tasks");
         CyclicBarrier barrier = new CyclicBarrier(3);
@@ -79,6 +79,8 @@ public class ConcurrentTaskTest extends BaseIntegrationTest {
             }
         } catch (SQLException e) {
             throw new RuntimeException("Error verifying task status: " + e.getMessage(), e);
+        }finally {
+            worker.shutdown();
         }
     }
 }
